@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 )
 
 const (
@@ -20,26 +21,33 @@ type CLI struct {
 
 func (cli *CLI) Run(args []string) int {
 	var (
+		enc     bool
+		dec     bool
 		in      string
 		out     string
 		key     string
 		version bool
 	)
 
-	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
+	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	flags.SetOutput(cli.errStream)
-	flags.Usage = func() {
-		fmt.Fprintln(cli.errStream, usage)
-	}
+	flags.Usage = cli.printHelp
+	flags.BoolVar(&enc, "enc", false, "Encrypt")
+	flags.BoolVar(&dec, "dec", false, "Decrypt")
 	flags.StringVar(&in, "in", "", "Input file path")
 	flags.StringVar(&out, "out", "", "Output file path")
 	flags.StringVar(&key, "key", "", "Encryption key string")
 	flags.BoolVar(&version, "version", false, "Print version")
 	flags.BoolVar(&version, "v", false, "Print version")
 
-	if err := flags.Parse(args[2:]); err != nil {
+	if len(args) < 2 {
+		cli.printHelp()
 		return ExitCodeNG
 	}
+
+	mode := args[1]
+	err := flags.Parse(args[2:])
+	cli.chkErr(err)
 
 	if version {
 		fmt.Fprintln(cli.outStream, Version)
@@ -47,42 +55,39 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	var cryptographer Cryptographer
-	var err error
 
-	switch args[1] {
+	switch mode {
 	case "enc":
 		cryptographer, err = NewEncryptor(key)
 	case "dec":
 		cryptographer, err = NewDecryptor(key)
 	default:
-		fmt.Fprintln(cli.errStream, "Invalid command "+args[1])
+		fmt.Fprintln(cli.errStream, "Invalid command")
 		return ExitCodeNG
 	}
-
-	if err != nil {
-		fmt.Fprintln(cli.errStream, err)
-		return ExitCodeNG
-	}
+	cli.chkErr(err)
 
 	input, err := ioutil.ReadFile(in)
-	if err != nil {
-		fmt.Fprintln(cli.errStream, err)
-		return ExitCodeNG
-	}
+	cli.chkErr(err)
 
 	result, err := cryptographer.Exec(input)
-	if err != nil {
-		fmt.Fprintln(cli.errStream, err)
-		return ExitCodeNG
-	}
+	cli.chkErr(err)
 
 	err = ioutil.WriteFile(out, result, 0644)
-	if err != nil {
-		fmt.Fprintln(cli.errStream, err)
-		return ExitCodeNG
-	}
+	cli.chkErr(err)
 
 	return ExitCodeOK
+}
+
+func (cli *CLI) chkErr(err error) {
+	if err != nil {
+		fmt.Fprintln(cli.errStream, err)
+		os.Exit(ExitCodeNG)
+	}
+}
+
+func (cli *CLI) printHelp() {
+	fmt.Fprintln(cli.errStream, usage)
 }
 
 var usage = `Usage: cryptography (enc|dec) -in input_path -out output_path -key encryption_key`
