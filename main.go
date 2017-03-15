@@ -1,8 +1,6 @@
 package main
 
-import (
-	"os"
-)
+import "os"
 
 const Version string = "v0.1.0"
 
