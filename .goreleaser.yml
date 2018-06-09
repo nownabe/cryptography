@@ -10,7 +10,5 @@ builds:
       - arm
       - arm64
 archive:
-  format: tar.gz
-  format_overrides:
-    - goos: windows
-      format: zip
+  name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+  format: binary
