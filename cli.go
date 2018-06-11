@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	ExitCodeOK = iota
-	ExitCodeNG
+	ExitCodeOK = 0
+	ExitCodeNG = 1
 
 	Name = "cryptography"
 )
