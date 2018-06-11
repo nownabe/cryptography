@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	Name = "cryptography"
-
 	ExitCodeOK = iota
 	ExitCodeNG
+
+	Name = "cryptography"
 )
 
 type CLI struct {
